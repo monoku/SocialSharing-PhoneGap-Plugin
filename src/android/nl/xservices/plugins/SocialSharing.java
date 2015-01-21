@@ -4,12 +4,14 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.*;
 import android.content.pm.ActivityInfo;
+import android.content.pm.LabeledIntent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.text.Html;
 import android.util.Base64;
+import android.util.Log;
 import android.view.Gravity;
 import android.widget.Toast;
 import org.apache.cordova.CallbackContext;
@@ -45,6 +47,8 @@ public class SocialSharing extends CordovaPlugin {
   private static final String ACTION_SHARE_VIA_SMS_EVENT = "shareViaSMS";
   private static final String ACTION_SHARE_VIA_EMAIL_EVENT = "shareViaEmail";
 
+  protected static final String LOG_TAG = "MONOKU================";
+
   private static final int ACTIVITY_CODE_SENDVIAEMAIL = 2;
 
   private CallbackContext _callbackContext;
@@ -62,22 +66,26 @@ public class SocialSharing extends CordovaPlugin {
   public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
     this._callbackContext = callbackContext; // only used for onActivityResult
     this.pasteMessage = null;
+    
+    Log.d(LOG_TAG, action);
+    
     if (ACTION_AVAILABLE_EVENT.equals(action)) {
       callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK));
       return true;
     } else if (ACTION_SHARE_EVENT.equals(action)) {
-      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), null, false);
+      Log.d(LOG_TAG, "yolo POTTER");
+      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), args.getString(4), null, false);
     } else if (ACTION_SHARE_VIA_TWITTER_EVENT.equals(action)) {
-      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), "twitter", false);
+      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), null, "twitter", false);
     } else if (ACTION_SHARE_VIA_FACEBOOK_EVENT.equals(action)) {
-      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), "com.facebook.katana", false);
+      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), null, "com.facebook.katana", false);
     } else if (ACTION_SHARE_VIA_FACEBOOK_WITH_PASTEMESSAGEHINT.equals(action)) {
       this.pasteMessage = args.getString(4);
-      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), "com.facebook.katana", false);
+      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), null, "com.facebook.katana", false);
     } else if (ACTION_SHARE_VIA_WHATSAPP_EVENT.equals(action)) {
-      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), "whatsapp", false);
+      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), null, "whatsapp", false);
     } else if (ACTION_CAN_SHARE_VIA.equals(action)) {
-      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), args.getString(4), true);
+      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), null, args.getString(4), true);
     } else if (ACTION_CAN_SHARE_VIA_EMAIL.equals(action)) {
       if (isEmailAvailable()) {
         callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.OK));
@@ -87,11 +95,12 @@ public class SocialSharing extends CordovaPlugin {
         return false;
       }
     } else if (ACTION_SHARE_VIA.equals(action)) {
-      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), args.getString(4), false);
+      return doSendIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.getString(3), null, args.getString(4), false);
     } else if (ACTION_SHARE_VIA_SMS_EVENT.equals(action)) {
       return invokeSMSIntent(callbackContext, args.getJSONObject(0), args.getString(1));
     } else if (ACTION_SHARE_VIA_EMAIL_EVENT.equals(action)) {
-      return invokeEmailIntent(callbackContext, args.getString(0), args.getString(1), args.getJSONArray(2), args.isNull(3) ? null : args.getJSONArray(3), args.isNull(4) ? null : args.getJSONArray(4), args.isNull(5) ? null : args.getJSONArray(5));
+      Log.d(LOG_TAG, "yolo");
+      return invokeEmailIntent(callbackContext, args.getString(4), args.getString(1), args.getJSONArray(2), args.isNull(3) ? null : args.getJSONArray(3), args.isNull(4) ? null : args.getJSONArray(4), args.isNull(5) ? null : args.getJSONArray(5));
     } else {
       callbackContext.error("socialSharing." + action + " is not a supported function. Did you mean '" + ACTION_SHARE_EVENT + "'?");
       return false;
@@ -165,18 +174,72 @@ public class SocialSharing extends CordovaPlugin {
     return dir;
   }
 
-  private boolean doSendIntent(final CallbackContext callbackContext, final String msg, final String subject, final JSONArray files, final String url, final String appPackageName, final boolean peek) {
+  private boolean doSendIntent(final CallbackContext callbackContext, final String msg, final String subject, final JSONArray files, final String url, final String messageHTML, final String appPackageName, final boolean peek) {
 
     final CordovaInterface mycordova = cordova;
     final CordovaPlugin plugin = this;
 
     cordova.getThreadPool().execute(new SocialSharingRunnable(callbackContext) {
       public void run() {
+        Intent emailIntent = new Intent();
+        emailIntent.setAction(Intent.ACTION_SEND);
+        // Native email client doesn't currently support HTML, but it doesn't hurt to try in case they fix it
+        emailIntent.putExtra(Intent.EXTRA_TEXT, Html.fromHtml(messageHTML));
+        emailIntent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        emailIntent.setType("message/rfc822");
+
+        PackageManager pm = cordova.getActivity().getPackageManager();
+        Intent sendIntent = new Intent(Intent.ACTION_SEND);     
+        sendIntent.setType("text/plain");
+
+
+        Intent openInChooser = Intent.createChooser(emailIntent, null);
+
+        List<ResolveInfo> resInfo = pm.queryIntentActivities(sendIntent, 0);
+        List<LabeledIntent> intentList = new ArrayList<LabeledIntent>();        
+        for (int i = 0; i < resInfo.size(); i++) {
+            // Extract the label, append it, and repackage it in a LabeledIntent
+            ResolveInfo ri = resInfo.get(i);
+            String packageName = ri.activityInfo.packageName;
+            Log.d(LOG_TAG, packageName);
+            if(packageName.contains("android.email") || packageName.contains("android.mail")) {
+                emailIntent.setPackage(packageName);
+            } else if(packageName.contains("twitter") || packageName.contains("facebook") || packageName.contains("mms") || packageName.contains("android.gm")) {
+                Intent intent = new Intent();
+                intent.setComponent(new ComponentName(packageName, ri.activityInfo.name));
+                intent.setAction(Intent.ACTION_SEND);
+                intent.setType("text/plain");
+                if(packageName.contains("twitter")) {
+                    intent.putExtra(Intent.EXTRA_TEXT, msg);
+                } else if(packageName.contains("facebook")) {
+                    // Warning: Facebook IGNORES our text. They say "These fields are intended for users to express themselves. Pre-filling these fields erodes the authenticity of the user voice."
+                    // One workaround is to use the Facebook SDK to post, but that doesn't allow the user to choose how they want to share. We can also make a custom landing page, and the link
+                    // will show the <meta content ="..."> text from that page with our link in Facebook.
+                    intent.putExtra(Intent.EXTRA_TEXT, msg);
+                } else if(packageName.contains("mms")) {
+                    intent.putExtra(Intent.EXTRA_TEXT, msg);
+                } else if(packageName.contains("android.gm")) {
+                    intent.putExtra(Intent.EXTRA_TEXT, Html.fromHtml(messageHTML));
+                    intent.putExtra(Intent.EXTRA_SUBJECT, subject);               
+                    intent.setType("message/rfc822");
+                }
+
+                intentList.add(new LabeledIntent(intent, packageName, ri.loadLabel(pm), ri.icon));
+            }
+        }
+
+        // convert intentList to array
+        LabeledIntent[] extraIntents = intentList.toArray( new LabeledIntent[ intentList.size() ]);
+
+        openInChooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, extraIntents);
+        mycordova.startActivityForResult(plugin, openInChooser, 1);
+        // startActivity(openInChooser); 
+        /*
         String message = msg;
         final boolean hasMultipleAttachments = files.length() > 1;
         final Intent sendIntent = new Intent(hasMultipleAttachments ? Intent.ACTION_SEND_MULTIPLE : Intent.ACTION_SEND);
         sendIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-
+      
         if (files.length() > 0) {
           ArrayList<Uri> fileUris = new ArrayList<Uri>();
           try {
@@ -216,6 +279,9 @@ public class SocialSharing extends CordovaPlugin {
         if (notEmpty(message)) {
           sendIntent.putExtra(android.content.Intent.EXTRA_TEXT, message);
           sendIntent.putExtra("sms_body", message); // sometimes required when the user picks share via sms
+        }
+        if (notEmpty(messageHTML)) {
+          sendIntent.putExtra("message_html", messageHTML);
         }
 
         if (appPackageName != null) {
@@ -257,6 +323,7 @@ public class SocialSharing extends CordovaPlugin {
             mycordova.startActivityForResult(plugin, Intent.createChooser(sendIntent, null), 1);
           }
         }
+        */
       }
     });
     return true;
@@ -409,6 +476,7 @@ public class SocialSharing extends CordovaPlugin {
 
   @Override
   public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+    Log.d( LOG_TAG, "ACTIVITY RESULT" );
     if (ACTIVITY_CODE_SENDVIAEMAIL == requestCode) {
       super.onActivityResult(requestCode, resultCode, intent);
       _callbackContext.success();
