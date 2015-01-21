@@ -6,6 +6,26 @@
 #import <MessageUI/MFMailComposeViewController.h>
 #import <MobileCoreServices/MobileCoreServices.h>
 
+@implementation APActivityProvider
+- (id) activityViewController:(UIActivityViewController *)activityViewController
+          itemForActivityType:(NSString *)activityType
+{
+    if ( [activityType isEqualToString: UIActivityTypePostToTwitter] ){
+        return self.message;
+    }
+    if ( [activityType isEqualToString: UIActivityTypePostToFacebook] ){
+        return self.message;
+    }
+    if ( [activityType isEqualToString: UIActivityTypeMessage] ){
+        return self.message;
+    }
+    if ( [activityType isEqualToString: UIActivityTypeMail] ){
+        return self.messageHTML;
+    }
+  return nil;
+}
+- (id) activityViewControllerPlaceholderItem:(UIActivityViewController *)activityViewController { return @""; }
+@end
 @implementation SocialSharing {
   UIPopoverController *_popover;
 }
@@ -38,6 +58,8 @@
 }
 
 - (void)share:(CDVInvokedUrlCommand*)command {
+
+  APActivityProvider *ActivityProvider = [[APActivityProvider alloc] init];
   
   if (!NSClassFromString(@"UIActivityViewController")) {
     CDVPluginResult * pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"not available"];
@@ -49,9 +71,13 @@
   NSString *subject   = [command.arguments objectAtIndex:1];
   NSArray  *filenames = [command.arguments objectAtIndex:2];
   NSString *urlString = [command.arguments objectAtIndex:3];
+  NSString *messageHTML = [command.arguments objectAtIndex:4];
   
   NSMutableArray *activityItems = [[NSMutableArray alloc] init];
-  [activityItems addObject:message];
+  [activityItems addObject:ActivityProvider];
+
+  ActivityProvider.message = message;
+  ActivityProvider.messageHTML = messageHTML;
   
   NSMutableArray *files = [[NSMutableArray alloc] init];
   if (filenames != (id)[NSNull null] && filenames.count > 0) {
@@ -119,7 +145,8 @@
       #endif
     }
   }
-  [self.viewController presentViewController:activityVC animated:YES completion:nil];
+  [[self topMostController] presentViewController:activityVC animated:YES completion:nil];
+  //[self.viewController presentViewController:activityVC animated:YES completion:nil];
 }
 
 - (void)shareViaTwitter:(CDVInvokedUrlCommand*)command {

@@ -1,6 +1,10 @@
 #import <Cordova/CDV.h>
 #import <MessageUI/MFMailComposeViewController.h>
 
+@interface APActivityProvider : UIActivityItemProvider <UIActivityItemSource>
+@property NSString *messageHTML;
+@property NSString *message;
+@end
 @interface SocialSharing : CDVPlugin <UIPopoverControllerDelegate, MFMailComposeViewControllerDelegate>
 
 @property (nonatomic, strong) MFMailComposeViewController *globalMailComposer;
