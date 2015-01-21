@@ -23,5 +23,6 @@
 - (void)shareViaWhatsApp:(CDVInvokedUrlCommand*)command;
 - (void)shareViaSMS:(CDVInvokedUrlCommand*)command;
 - (void)shareViaEmail:(CDVInvokedUrlCommand*)command;
+- (UIViewController*)topMostController;
 
 @end

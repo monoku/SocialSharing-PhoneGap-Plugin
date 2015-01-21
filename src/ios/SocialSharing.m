@@ -57,6 +57,17 @@
   return rect;
 }
 
+- (UIViewController*) topMostController
+{
+    UIViewController *topController = [UIApplication sharedApplication].keyWindow.rootViewController;
+
+    while (topController.presentedViewController) {
+        topController = topController.presentedViewController;
+    }
+
+    return topController;
+}
+
 - (void)share:(CDVInvokedUrlCommand*)command {
 
   APActivityProvider *ActivityProvider = [[APActivityProvider alloc] init];
