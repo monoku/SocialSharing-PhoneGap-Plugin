@@ -6,26 +6,6 @@
 #import <MessageUI/MFMailComposeViewController.h>
 #import <MobileCoreServices/MobileCoreServices.h>
 
-@implementation APActivityProvider
-- (id) activityViewController:(UIActivityViewController *)activityViewController
-          itemForActivityType:(NSString *)activityType
-{
-    if ( [activityType isEqualToString: UIActivityTypePostToTwitter] ){
-        return self.message;
-    }
-    if ( [activityType isEqualToString: UIActivityTypePostToFacebook] ){
-        return self.message;
-    }
-    if ( [activityType isEqualToString: UIActivityTypeMessage] ){
-        return self.message;
-    }
-    if ( [activityType isEqualToString: UIActivityTypeMail] ){
-        return self.messageHTML;
-    }
-  return nil;
-}
-- (id) activityViewControllerPlaceholderItem:(UIActivityViewController *)activityViewController { return @""; }
-@end
 @implementation SocialSharing {
   UIPopoverController *_popover;
   NSString *_popupCoordinates;
