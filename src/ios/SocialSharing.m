@@ -148,7 +148,6 @@
       [[self getTopMostViewController] presentViewController:activityVC animated:YES completion:nil];
     });
   }];
->>>>>>> master
 }
 
 - (void)shareViaTwitter:(CDVInvokedUrlCommand*)command {
